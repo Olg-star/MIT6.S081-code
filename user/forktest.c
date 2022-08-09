@@ -1,3 +1,4 @@
+//勉强看过
 // Test that fork fails gracefully.
 // Tiny executable so that the limit can be filling the proc table.
 
@@ -24,7 +25,7 @@ forktest(void)
     pid = fork();
     if(pid < 0)
       break;
-    if(pid == 0)
+    if(pid == 0)//子进程
       exit(0);
   }
 

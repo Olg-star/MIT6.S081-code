@@ -13,40 +13,41 @@
 
 #define MAXARGS 10
 
-struct cmd {
-  int type;
+struct cmd {//统一接口
+  int type;//上面五个宏
 };
 
-struct execcmd {
-  int type;
-  char *argv[MAXARGS];
-  char *eargv[MAXARGS];
+struct execcmd {//最基本的命令
+  int type;//上面五个宏
+  char *argv[MAXARGS];//代表相应的字符串开始的内存位置
+  char *eargv[MAXARGS];//代表相应的字符串结束的内存位置
 };
 
-struct redircmd {
+struct redircmd {//代表相应的字符串开始的内存位置
   int type;
-  struct cmd *cmd;
-  char *file;
-  char *efile;
-  int mode;
-  int fd;
+  struct cmd *cmd;//实际要执行的命令
+  char *file;//重定向的文件名在内存中的其实位置
+  char *efile;//代表文件名在内存中的结束位置
+  int mode;//打开模式
+  int fd;//fd代表重定向要替换的文件描述符，可以取0或1，代表是输入重定向或者是输出重定向。
 };
 
-struct pipecmd {
+struct pipecmd {//管道命令
+  int type;
+  struct cmd *left;//左命令是提供管道输入的命令
+  struct cmd *right;//右命令是管道输出的命令
+};
+
+struct listcmd {//并列命令,可以把多个命令合成一个命令发送给shell，命令之间以;间隔，shell会分别执行。
+                //例如echo hello; echo world这种形式的命令。
   int type;
   struct cmd *left;
   struct cmd *right;
 };
 
-struct listcmd {
+struct backcmd {//后台命令,在命令的最后面加上&，代表放到后台执行
   int type;
-  struct cmd *left;
-  struct cmd *right;
-};
-
-struct backcmd {
-  int type;
-  struct cmd *cmd;
+  struct cmd *cmd;//实际要执行的cmd命令
 };
 
 int fork1(void);  // Fork but panics on failure.
@@ -164,7 +165,7 @@ main(void)
         fprintf(2, "cannot cd %s\n", buf+3);
       continue;
     }
-    if(fork1() == 0)
+    if(fork1() == 0)//创建shell副本，父进程执行wait，子进程运行命令
       runcmd(parsecmd(buf));
     wait(0);
   }
@@ -263,17 +264,18 @@ char whitespace[] = " \t\r\n\v";
 char symbols[] = "<|>&;()";
 
 int
-gettoken(char **ps, char *es, char **q, char **eq)
+gettoken(char **ps, char *es, char **q, char **eq)//把一段字符串提取出来，一般是用来提取基本命令或者重定向的文件名
 {
+ 
   char *s;
   int ret;
 
   s = *ps;
-  while(s < es && strchr(whitespace, *s))
+  while(s < es && strchr(whitespace, *s))//让s指向第一个非空字符
     s++;
   if(q)
-    *q = s;
-  ret = *s;
+    *q = s;//q指向字符串起始位置
+  ret = *s;//第一个非空字符的ASCII值
   switch(*s){
   case 0:
     break;
@@ -292,16 +294,16 @@ gettoken(char **ps, char *es, char **q, char **eq)
       s++;
     }
     break;
-  default:
+  default://如果遇到实际命令，则返回’a’，代表这是一个真实的基本命令。
     ret = 'a';
-    while(s < es && !strchr(whitespace, *s) && !strchr(symbols, *s))
+    while(s < es && !strchr(whitespace, *s) && !strchr(symbols, *s))//*s非空格且非"<|>&;()"其中一个
       s++;
     break;
   }
   if(eq)
-    *eq = s;
+    *eq = s;// //eq指向结束位置
 
-  while(s < es && strchr(whitespace, *s))
+  while(s < es && strchr(whitespace, *s))//将s指向一个非空格字符
     s++;
   *ps = s;
   return ret;
@@ -313,10 +315,10 @@ peek(char **ps, char *es, char *toks)
   char *s;
 
   s = *ps;
-  while(s < es && strchr(whitespace, *s))
+  while(s < es && strchr(whitespace, *s))//将s指向第一个非空位置
     s++;
-  *ps = s;
-  return *s && strchr(toks, *s);
+  *ps = s;//将*ps指向第一个非空位置
+  return *s && strchr(toks, *s);//*s非空 且 *s是toks里的字符
 }
 
 struct cmd *parseline(char**, char*);
@@ -325,15 +327,18 @@ struct cmd *parseexec(char**, char*);
 struct cmd *nulterminate(struct cmd*);
 
 struct cmd*
-parsecmd(char *s)
+parsecmd(char *s)//命令构造函数，它简单地把工作转交给parseline()函数。
 {
   char *es;
   struct cmd *cmd;
 
-  es = s + strlen(s);
+  es = s + strlen(s);//es指向输入字符串的结尾位置，即*es=0
   cmd = parseline(&s, es);
+
+  //检查输入字符串从头开始除空格外的第一个字符是否是给定的字符范围中的一个，返回true或者false，同时移动字符指针指向第一个非空格字符。
   peek(&s, es, "");
-  if(s != es){
+
+  if(s != es){//判断是否到达输入字符串的末端，否则报错
     fprintf(2, "leftovers: %s\n", s);
     panic("syntax");
   }
@@ -342,24 +347,30 @@ parsecmd(char *s)
 }
 
 struct cmd*
-parseline(char **ps, char *es)
+parseline(char **ps, char *es)//处理一行的输入字符串，把它转化成命令
 {
   struct cmd *cmd;
 
+//先以管道为单位划分输入命令字符串，主要的工作都转交给parsepipe()完成。
+//parsepipe()里可以处理<>()这几种字符
   cmd = parsepipe(ps, es);
+
+//&;则在parseline()里完成，判断是否有并列命令与列表命令。
   while(peek(ps, es, "&")){
-    gettoken(ps, es, 0, 0);
+    gettoken(ps, es, 0, 0);//一个词法提取函数，用户提取每一个子命令
     cmd = backcmd(cmd);
   }
   if(peek(ps, es, ";")){
     gettoken(ps, es, 0, 0);
     cmd = listcmd(cmd, parseline(ps, es));
   }
+
+//这里gettoken()只是简单地把代表并列命令的;以及后台命令的&跳过，让字符指针指向下一个非空格字符，并没有抽取字符串。
   return cmd;
 }
 
 struct cmd*
-parsepipe(char **ps, char *es)
+parsepipe(char **ps, char *es)//把命令以|分成两个个子命令，先构造左边的命令，右边的命令则通过递归调用自身来构造。
 {
   struct cmd *cmd;
 
@@ -377,8 +388,9 @@ parseredirs(struct cmd *cmd, char **ps, char *es)
   int tok;
   char *q, *eq;
 
-  while(peek(ps, es, "<>")){
+  while(peek(ps, es, "<>")){//先判断是否有重定向参数，如果没有，则不作任何处理。如果有，则将子命令包装成listcmd。
     tok = gettoken(ps, es, 0, 0);
+    //经过gettoken()的词法提取后，q和eq分别指向重定向文件名的起始与结束的内存位置，它们都作为参数构造器listcmd。
     if(gettoken(ps, es, &q, &eq) != 'a')
       panic("missing file for redirection");
     switch(tok){
@@ -397,7 +409,7 @@ parseredirs(struct cmd *cmd, char **ps, char *es)
 }
 
 struct cmd*
-parseblock(char **ps, char *es)
+parseblock(char **ps, char *es)//每一个()里面的命令都可以看作一个整体命令，因此主要是递归地把工作转交给parseline()
 {
   struct cmd *cmd;
 
@@ -408,19 +420,19 @@ parseblock(char **ps, char *es)
   if(!peek(ps, es, ")"))
     panic("syntax - missing )");
   gettoken(ps, es, 0, 0);
-  cmd = parseredirs(cmd, ps, es);
+  cmd = parseredirs(cmd, ps, es);//()内的整体命令可能跟着重定向参数，因此这里也需要用parseredirs()看能不能包装成redircmd。
   return cmd;
 }
 
 struct cmd*
-parseexec(char **ps, char *es)
+parseexec(char **ps, char *es)//构造最基本的命令
 {
   char *q, *eq;
   int tok, argc;
   struct execcmd *cmd;
   struct cmd *ret;
 
-  if(peek(ps, es, "("))
+  if(peek(ps, es, "("))//如果遇到()的话则把工作转交给parseblock()，否则说明是基本命令
     return parseblock(ps, es);
 
   ret = execcmd();
@@ -433,12 +445,12 @@ parseexec(char **ps, char *es)
       break;
     if(tok != 'a')
       panic("syntax");
-    cmd->argv[argc] = q;
-    cmd->eargv[argc] = eq;
+    cmd->argv[argc] = q;//开始位置
+    cmd->eargv[argc] = eq;//结束位置
     argc++;
     if(argc >= MAXARGS)
       panic("too many args");
-    ret = parseredirs(ret, ps, es);
+    ret = parseredirs(ret, ps, es);//把execcmd作为子命令传递给parseredirs()函数，看能不能构造redircmd
   }
   cmd->argv[argc] = 0;
   cmd->eargv[argc] = 0;
@@ -446,6 +458,9 @@ parseexec(char **ps, char *es)
 }
 
 // NUL-terminate all the counted strings.
+// 在execcmd里用eargv数组保存每一个命令参数的字符串结束位置；在redircmd里用efile保存了重定向文件名的字符串结束位置。
+// nulterminate()就是给每一个结束位置指针指向的内存标识上字符串的结束标志\0。
+// 让这些参数都成为完整的字符串，那么在命令执行时候就能够正确处理。
 struct cmd*
 nulterminate(struct cmd *cmd)
 {

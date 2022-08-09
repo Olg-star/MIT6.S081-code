@@ -1,3 +1,4 @@
+//已读
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "user/user.h"
@@ -35,7 +36,7 @@ ls(char *path)
     return;
   }
 
-  if(fstat(fd, &st) < 0){
+  if(fstat(fd, &st) < 0){//fstat（由文件描述符取得文件状态）
     fprintf(2, "ls: cannot stat %s\n", path);
     close(fd);
     return;
@@ -47,17 +48,17 @@ ls(char *path)
     break;
 
   case T_DIR:
-    if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
+    if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){//多了 / 以及最后的 '\0'
       printf("ls: path too long\n");
       break;
     }
-    strcpy(buf, path);
+    strcpy(buf, path);//path -> buf
     p = buf+strlen(buf);
     *p++ = '/';
     while(read(fd, &de, sizeof(de)) == sizeof(de)){
       if(de.inum == 0)
         continue;
-      memmove(p, de.name, DIRSIZ);
+      memmove(p, de.name, DIRSIZ);//de.name -> p
       p[DIRSIZ] = 0;
       if(stat(buf, &st) < 0){
         printf("ls: cannot stat %s\n", buf);

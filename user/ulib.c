@@ -1,3 +1,4 @@
+//已读
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "kernel/fcntl.h"
@@ -8,7 +9,7 @@ strcpy(char *s, const char *t)
 {
   char *os;
 
-  os = s;
+  os = s;//保存首地址
   while((*s++ = *t++) != 0)
     ;
   return os;
@@ -44,7 +45,7 @@ memset(void *dst, int c, uint n)
 }
 
 char*
-strchr(const char *s, char c)
+strchr(const char *s, char c)//在参数 str 所指向的字符串中搜索第一次出现字符 c（一个无符号字符）的位置。
 {
   for(; *s; s++)
     if(*s == c)
@@ -53,7 +54,7 @@ strchr(const char *s, char c)
 }
 
 char*
-gets(char *buf, int max)
+gets(char *buf, int max)//读取一行数据
 {
   int i, cc;
   char c;
@@ -79,7 +80,7 @@ stat(const char *n, struct stat *st)
   fd = open(n, O_RDONLY);
   if(fd < 0)
     return -1;
-  r = fstat(fd, st);
+  r = fstat(fd, st);//由文件描述词取得文件状态
   close(fd);
   return r;
 }

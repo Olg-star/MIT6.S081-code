@@ -1,0 +1,7 @@
+make --dry-run --keep-going --print-directory
+make: Entering directory '/home/xhx/OS/xv6-labs-2021'
+ 
+make: 'kernel/kernel' is up to date.
+ 
+make: Leaving directory '/home/xhx/OS/xv6-labs-2021'
+ 

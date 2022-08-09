@@ -1,5 +1,5 @@
 // init: The initial user-level program
-
+//ря╤а
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "kernel/spinlock.h"
