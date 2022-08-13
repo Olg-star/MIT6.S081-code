@@ -3,7 +3,7 @@
 # (e.g., LAB=util).  Run make grade to test solution with the lab's
 # grade script (e.g., grade-lab-util).
 
--include conf/lab.mk
+-include conf/lab.mk # 这个lab.mk其实是用来定义是那个lab
 
 K=kernel
 U=user
@@ -44,12 +44,12 @@ OBJS_KCSAN += \
 	$K/kcsan.o
 endif
 
-ifeq ($(LAB),pgtbl)
+ifeq ($(LAB),pgtbl) # if( LAB == pgtbl )
 OBJS += \
 	$K/vmcopyin.o
 endif
 
-ifeq ($(LAB),$(filter $(LAB), pgtbl lock))
+ifeq ($(LAB),$(filter $(LAB), pgtbl lock)) # if(LAB == pgtbl || LAB == lock)
 OBJS += \
 	$K/stats.o\
 	$K/sprintf.o
@@ -91,17 +91,23 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
-CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
+CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb  #用于 C 编译器的选项
+# -Wall:能发现程序中一系列的常见错误警告,报告这些检测到的警告
+# -Werror:要求GCC将所有的警告当成错误进行处理,出现任何警告即放弃编译
+# -O:优化生成代码
+# -ggdb:使 GCC 为 GDB 生成专用的更为丰富的调试信息，但是，此时就不能用其他的调试器来进行调试了
+# -fno-omit-frame-pointer:让gcc产生stack frame 
 
 ifdef LAB
-LABUPPER = $(shell echo $(LAB) | tr a-z A-Z)
+LABUPPER = $(shell echo $(LAB) | tr a-z A-Z) # tr指令将打印信息由小写转大写
 XCFLAGS += -DSOL_$(LABUPPER) -DLAB_$(LABUPPER)
 endif
 
 CFLAGS += $(XCFLAGS)
-CFLAGS += -MD
+CFLAGS += -MD #输出依赖关系
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
+# -nostdlib 不连接系统标准启动文件和标准库文件，只把指定的文件传递给连接器。
 CFLAGS += -I.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
@@ -122,7 +128,7 @@ ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]nopie'),)
 CFLAGS += -fno-pie -nopie
 endif
 
-LDFLAGS = -z max-page-size=4096
+LDFLAGS = -z max-page-size=4096 # LDFLAGS
 
 $K/kernel: $(OBJS) $(OBJS_KCSAN) $K/kernel.ld $U/initcode
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) $(OBJS_KCSAN)
@@ -175,6 +181,9 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 # details:
 # http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
 .PRECIOUS: %.o
+# 通常情况下，当make在执行中，被打断，则其退出时会把已经生成的文件给删除掉。
+# 而定义了这个特殊标记，则会防止这种自动删除。
+# 防止花了很长时间编译完的文件，因为后面一点小事情产成的中断而被删除
 
 UPROGS=\
 	$U/_cat\
