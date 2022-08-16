@@ -24,7 +24,7 @@ argfd(int n, int *pfd, struct file **pf)
   int fd;
   struct file *f;
 
-  if(argint(n, &fd) < 0)
+  if(argint(n, &fd) < 0)//将第n个参数值传给fd
     return -1;
   if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
     return -1;
@@ -110,7 +110,7 @@ sys_fstat(void)
   struct file *f;
   uint64 st; // user pointer to struct stat
 
-  if(argfd(0, 0, &f) < 0 || argaddr(1, &st) < 0)
+  if(argfd(0, 0, &f) < 0 || argaddr(1, &st) < 0)//第0个参数传给fd，第1个参数（stat的指针）传给st
     return -1;
   return filestat(f, st);
 }

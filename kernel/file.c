@@ -85,19 +85,20 @@ fileclose(struct file *f)
 // Get metadata about file f.
 // addr is a user virtual address, pointing to a struct stat.
 int
-filestat(struct file *f, uint64 addr)
+filestat(struct file *f, uint64 addr)//addrÊÇstatÖ¸Õë
 {
   struct proc *p = myproc();
   struct stat st;
   
   if(f->type == FD_INODE || f->type == FD_DEVICE){
-    ilock(f->ip);
-    stati(f->ip, &st);
+    ilock(f->ip);//f->ip FD_INODE and FD_DEVICE lock
+    stati(f->ip, &st);//Copy stat information from inode.
     iunlock(f->ip);
-    if(copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)
+    if(copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)//st -> *addr
       return -1;
     return 0;
   }
+
   return -1;
 }
 

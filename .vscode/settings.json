@@ -1,3 +1,12 @@
 {
-    "makefile.extensionOutputFolder": "./.vscode"
+    "makefile.extensionOutputFolder": "./.vscode",
+    "files.associations": {
+        "types.h": "c",
+        "param.h": "c",
+        "memlayout.h": "c",
+        "riscv.h": "c",
+        "proc.h": "c",
+        "spinlock.h": "c",
+        "defs.h": "c"
+    }
 }

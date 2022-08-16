@@ -11,10 +11,10 @@
 int
 fetchaddr(uint64 addr, uint64 *ip)
 {
-  struct proc *p = myproc();
-  if(addr >= p->sz || addr+sizeof(uint64) > p->sz)
+  struct proc *p = myproc();//当前用户态进程
+  if(addr >= p->sz || addr+sizeof(uint64) > p->sz)//超过进程内存
     return -1;
-  if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0)
+  if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0)//将进程的内容拷贝给内核态 dst是*ip
     return -1;
   return 0;
 }
@@ -32,7 +32,7 @@ fetchstr(uint64 addr, char *buf, int max)
 }
 
 static uint64
-argraw(int n)
+argraw(int n)//将用户态进程的参数传递给内核态
 {
   struct proc *p = myproc();
   switch (n) {
@@ -104,8 +104,12 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
+extern uint64 sys_trace(void);
+extern uint64 sys_sysinfo(void);
 
-static uint64 (*syscalls[])(void) = {
+static uint64 (*syscalls[])(void) = {//映射表 前面定义的编号到系统调用函数指针的映射
+//这里 [SYS_trace] sys_trace 是 C 语言数组的一个语法，表示以方括号内的值作为元素下标。
+//比如 int arr[] = {[3] 2333, [6] 6666} 代表 arr 的下标 3 的元素为 2333，下标 6 的元素为 6666，其他元素填充 0 的数组。
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
 [SYS_wait]    sys_wait,
@@ -127,20 +131,33 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_trace]   sys_trace,
+[SYS_sysinfo] sys_sysinfo,
 };
 
+const char* syscalls_name[23]={
+  "fork","exit","wait","pipe","read","kill","exec","fstat","chdir","dup",
+  "getpid","sbrk","sleep","uptime","open","write","mknod","unlink","link","mkdir",
+  "close","trace","sysinfo"
+};
 void
 syscall(void)
 {
   int num;
   struct proc *p = myproc();
 
-  num = p->trapframe->a7;
+  num = p->trapframe->a7;//系统调用的ID
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    p->trapframe->a0 = syscalls[num]();
+    //判断该系统调用是不是要跟踪的，注意num从1开始，mask其实也是从第一位（不是第0位）开始
+    p->trapframe->a0 = syscalls[num]();//a0是系统调用的返回值
+    if((p->mask >> num) & 1){
+        printf("%d: syscall %s -> %d\n",p->pid,syscalls_name[num-1], p->trapframe->a0);
+    }
+
   } else {
     printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);
     p->trapframe->a0 = -1;
   }
 }
+

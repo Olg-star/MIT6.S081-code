@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -94,4 +95,34 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+//Add a sys_trace() function in kernel/sysproc.c
+//remember its argument in a new variable in the proc structure
+//retrieve system call arguments from user space are in kernel/syscall.c
+uint64
+sys_trace(void){
+  int mask;
+  if(argint(0,&mask)<0){//将用户态的参数传给内核，因为只有一个参数，所以是第一个（0开始索引）
+    return -1;
+  }
+  myproc()->mask = mask;//将参数传给内核态的进程
+  return 0;
+}
+
+//add a system call, sysinfo, that collects information about the running system. 
+uint64 
+sys_sysinfo(void){
+  uint64 sf;//pointer to sysinfo
+  if(argaddr(0,&sf)<0){
+    return -1;
+  }
+
+  struct proc *p = myproc();
+  struct sysinfo sysf;
+  sysf.freemem = amount_of_free_memory();
+  sysf.nproc = cnt_processes();
+  if(copyout(p->pagetable,sf,(char*)&sysf,sizeof(sysf))<0)
+    return -1;
+  return 0;
 }

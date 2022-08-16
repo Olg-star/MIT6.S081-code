@@ -20,13 +20,13 @@ struct run {
 
 struct {
   struct spinlock lock;
-  struct run *freelist;
+  struct run *freelist;//空闲链表
 } kmem;
 
 void
 kinit()
 {
-  initlock(&kmem.lock, "kmem");
+  initlock(&kmem.lock, "kmem");//初始化锁，名字为"kmem"
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -79,4 +79,19 @@ kalloc(void)
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
+}
+
+//To collect the amount of free memory
+uint64 
+amount_of_free_memory(void){
+  struct run* r;
+  acquire(&kmem.lock);//上锁
+  r=kmem.freelist;//空闲链表头
+  uint64 cnt=0;
+  while(r){//遍历链表数有多少空闲节点
+    r=r->next;
+    cnt++;
+  }
+  release(&kmem.lock);//解锁
+  return cnt*PGSIZE;
 }

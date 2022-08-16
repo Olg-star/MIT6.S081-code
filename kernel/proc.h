@@ -105,4 +105,5 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  uint64 mask;                 //用于标记哪个系统调用被跟踪,64是因为32的时候在a
 };
