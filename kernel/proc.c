@@ -171,8 +171,12 @@ freeproc(struct proc *p)
   if (p->trapframe)
     kfree((void *)p->trapframe);
   p->trapframe = 0;
+  if(p->usc)//释放usc页
+    kfree((void*)p->usc);
+  p->usc = 0;
   if (p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
+
   p->pagetable = 0;
   p->sz = 0;
   p->pid = 0;
@@ -218,7 +222,7 @@ proc_pagetable(struct proc *p)
 
   //映射进程的usyscall
   if (mappages(pagetable,USYSCALL, PGSIZE,
-               (uint64)(p->usc), PTE_R | PTE_X) < 0)
+               (uint64)(p->usc), PTE_R | PTE_U) < 0)//只读且可以用户态访问
   {
     uvmunmap(pagetable, TRAMPOLINE, 1, 0);//不释放物理空间，只是取消映射
     uvmunmap(pagetable,USYSCALL,1,0);
@@ -235,6 +239,7 @@ void proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
+  uvmunmap(pagetable, USYSCALL, 1, 0);//取消映射
   uvmfree(pagetable, sz);
 }
 
