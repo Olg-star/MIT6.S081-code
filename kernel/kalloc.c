@@ -13,6 +13,7 @@ void freerange(void *pa_start, void *pa_end);
 
 extern char end[]; // first address after kernel.
                    // defined by kernel.ld.
+                  //紧随bss节，也就是紧随加载到内存中的kernel elf文件末尾的内存位置。
 
 struct run {
   struct run *next;
@@ -20,21 +21,22 @@ struct run {
 
 struct {
   struct spinlock lock;
-  struct run *freelist;
+  struct run *freelist;//空闲链表
 } kmem;
 
 void
 kinit()
 {
-  initlock(&kmem.lock, "kmem");
-  freerange(end, (void*)PHYSTOP);
+  initlock(&kmem.lock, "kmem");//初始化锁，名字为"kmem"
+  freerange(end, (void*)PHYSTOP);//xv6使用从end开始，到PHYSTOP部分的内存作为free memory pool。
+  //注意end并不是kern_base，而是kern_data之后，也因此真正能分配出去的物理内存并没有128M
 }
 
 void
-freerange(void *pa_start, void *pa_end)
+freerange(void *pa_start, void *pa_end)//将end~PHYSTOP之间的内存一页页地加入到free list中进行管理
 {
   char *p;
-  p = (char*)PGROUNDUP((uint64)pa_start);
+  p = (char*)PGROUNDUP((uint64)pa_start);//应该是按页对齐，向上取整获取页面对齐的地址
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
     kfree(p);
 }
@@ -44,7 +46,7 @@ freerange(void *pa_start, void *pa_end)
 // call to kalloc().  (The exception is when
 // initializing the allocator; see kinit above.)
 void
-kfree(void *pa)
+kfree(void *pa)//kfree的作用是将从起始地址开始的一页物理内存加入到free list中
 {
   struct run *r;
 
@@ -54,7 +56,7 @@ kfree(void *pa)
   // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
 
-  r = (struct run*)pa;
+  r = (struct run*)pa;//物理地址直接和空闲链表地址挂钩
 
   acquire(&kmem.lock);
   r->next = kmem.freelist;
@@ -80,3 +82,5 @@ kalloc(void)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+
+
