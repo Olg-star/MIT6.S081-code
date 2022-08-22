@@ -1,9 +1,10 @@
 // which hart (core) is this?
+//mhartid这个寄存器用于运行当前代码的硬件线程（hart）的 ID
 static inline uint64
 r_mhartid()
 {
   uint64 x;
-  asm volatile("csrr %0, mhartid" : "=r" (x) );
+  asm volatile("csrr %0, mhartid" : "=r" (x) );//读mhartid的值给x
   return x;
 }
 
@@ -16,7 +17,7 @@ r_mhartid()
 #define MSTATUS_MIE (1L << 3)    // machine-mode interrupt enable.
 
 static inline uint64
-r_mstatus()
+r_mstatus()//返回机器模式下寄存器状态，表示处理器在哪个模式下
 {
   uint64 x;
   asm volatile("csrr %0, mstatus" : "=r" (x) );
@@ -24,7 +25,7 @@ r_mstatus()
 }
 
 static inline void 
-w_mstatus(uint64 x)
+w_mstatus(uint64 x)//更改处理器在哪个模式下，写入mstatus
 {
   asm volatile("csrw mstatus, %0" : : "r" (x));
 }
@@ -33,21 +34,21 @@ w_mstatus(uint64 x)
 // instruction address to which a return from
 // exception will go.
 static inline void 
-w_mepc(uint64 x)
+w_mepc(uint64 x)//保存异常返回地址
 {
   asm volatile("csrw mepc, %0" : : "r" (x));
 }
 
-// Supervisor Status Register, sstatus
-
+// Supervisor Status Register, sstatus 特权模式
+//SPP用于保存进入异常之前，处理器处于那种模式。（只有一位，只能用于保存 S-mode 或者 U-mode 模式）
 #define SSTATUS_SPP (1L << 8)  // Previous mode, 1=Supervisor, 0=User
-#define SSTATUS_SPIE (1L << 5) // Supervisor Previous Interrupt Enable
-#define SSTATUS_UPIE (1L << 4) // User Previous Interrupt Enable
-#define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
+#define SSTATUS_SPIE (1L << 5) // Supervisor Previous Interrupt Enable 用于保存进入异常之前，SIE的值。
+#define SSTATUS_UPIE (1L << 4) // User Previous Interrupt Enable  用于保存进入异常之前，UIE的值
+#define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable 监管者模式（supervisor mode）的全局中断使能位。
 #define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
 
 static inline uint64
-r_sstatus()
+r_sstatus()//读取CPU在哪个模式下
 {
   uint64 x;
   asm volatile("csrr %0, sstatus" : "=r" (x) );
@@ -55,14 +56,14 @@ r_sstatus()
 }
 
 static inline void 
-w_sstatus(uint64 x)
+w_sstatus(uint64 x)//写入CPU的状态
 {
   asm volatile("csrw sstatus, %0" : : "r" (x));
 }
 
 // Supervisor Interrupt Pending
 static inline uint64
-r_sip()
+r_sip()//读取何种类型的中断
 {
   uint64 x;
   asm volatile("csrr %0, sip" : "=r" (x) );
@@ -70,7 +71,7 @@ r_sip()
 }
 
 static inline void 
-w_sip(uint64 x)
+w_sip(uint64 x)//写入何种类型的中断
 {
   asm volatile("csrw sip, %0" : : "r" (x));
 }
@@ -194,6 +195,10 @@ w_pmpaddr0(uint64 x)
 }
 
 // use riscv's sv39 page table scheme.
+//satp寄存器结构
+//63...60 MODE
+//59...44 ASID(WARL)
+//43...0 PPN(WARL) 根页表的物理地址的高44位
 #define SATP_SV39 (8L << 60)
 
 #define MAKE_SATP(pagetable) (SATP_SV39 | (((uint64)pagetable) >> 12))
@@ -203,7 +208,7 @@ w_pmpaddr0(uint64 x)
 static inline void 
 w_satp(uint64 x)
 {
-  asm volatile("csrw satp, %0" : : "r" (x));
+  asm volatile("csrw satp, %0" : : "r" (x));//%0 写入satp，satp写入%0
 }
 
 static inline uint64
@@ -361,6 +366,7 @@ sfence_vma()
 // Sv39, to avoid having to sign-extend virtual addresses
 // that have the high bit set.
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+//因为xv6只使用了 38 位地址（39位的最高位永远为0，这样就可以避免符号扩展）
 
 typedef uint64 pte_t;
 typedef uint64 *pagetable_t; // 512 PTEs
