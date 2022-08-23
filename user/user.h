@@ -28,7 +28,7 @@ int uptime(void);
 int connect(uint32, uint16, uint16);
 #endif
 #ifdef LAB_PGTBL
-int pgaccess(void *base, int len, void *mask);
+int pgaccess(void *base, int len, void *mask);//被检测页面的虚拟地址，被检测页面总数，输出结果的用户态地址
 // usyscall region
 int ugetpid(void);
 #endif
