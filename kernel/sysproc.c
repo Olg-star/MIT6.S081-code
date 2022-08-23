@@ -101,6 +101,7 @@ sys_pgaccess(void)
   base = PGROUNDDOWN(base);
   for(int i=0; i < len && base < MAXVA; i++,base+=PGSIZE){
       pte_t* pte = walk(p->pagetable,base,0);
+      if(pte == 0) return -1;
       if(*pte & PTE_A){
         abits |= 1<<i;
         *pte &= ~PTE_A;//重新修改访问位
