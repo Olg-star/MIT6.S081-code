@@ -31,7 +31,8 @@ extern struct cpu cpus[NCPU];
 // per-process data for the trap handling code in trampoline.S.
 // sits in a page by itself just under the trampoline page in the
 // user page table. not specially mapped in the kernel page table.
-// the sscratch register points here.
+// the sscratch register points here. 
+// 在进入到user space之前，内核会将trapframe page的地址保存在这个sscratch寄存器中，也就是0x3fffffe000这个地址。
 // uservec in trampoline.S saves user registers in the trapframe,
 // then initializes registers from the trapframe's
 // kernel_sp, kernel_hartid, kernel_satp, and jumps to kernel_trap.
@@ -42,7 +43,7 @@ extern struct cpu cpus[NCPU];
 // return-to-user path via usertrapret() doesn't return through
 // the entire kernel call stack.
 struct trapframe {
-  /*   0 */ uint64 kernel_satp;   // kernel page table
+  /*   0 */ uint64 kernel_satp;   // kernel page table , trap处理代码将要加载到SATP寄存器的数值。
   /*   8 */ uint64 kernel_sp;     // top of process's kernel stack
   /*  16 */ uint64 kernel_trap;   // usertrap()
   /*  24 */ uint64 epc;           // saved user program counter
