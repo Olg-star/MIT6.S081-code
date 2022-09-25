@@ -96,3 +96,27 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_sigalarm(void)
+{
+  struct proc* p = myproc();
+  uint64 handler;
+  if(argint(0,&(p->interval))<0){
+    return -1;
+  }
+  if(argaddr(1,&handler)<0){
+    return -1;
+  }
+  p->handler = (void (*)())handler;
+  return 0;
+}
+
+uint64
+sys_sigreturn(void)
+{
+  struct proc* p = myproc();
+  swiftTrapframe(p->trapframeSave,p->trapframe);
+  p->waitReturn = 0;//ÊÍ·ÅËø
+  return 0;
+}

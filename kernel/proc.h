@@ -106,4 +106,9 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  int interval;                // the alarm interval
+  void (*handler)();           // the handler function
+  int ticksCount;              // how many ticks have passed since the last call
+  struct trapframe *trapframeSave; // 用于保存trapframe
+  int waitReturn;             // 判断有无进程还在调用handler函数，有则等待
 };
