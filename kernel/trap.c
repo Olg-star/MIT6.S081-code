@@ -38,7 +38,7 @@ usertrap(void)
 {
   int which_dev = 0;
 
-  if((r_sstatus() & SSTATUS_SPP) != 0)//必须在特权级别下才可以执行
+  if((r_sstatus() & SSTATUS_SPP) != 0)//必须在特权级别下才可以执行,ecall(usys.s)时发生级别切换
     panic("usertrap: not from user mode");
 
   // send interrupts and exceptions to kerneltrap(),
@@ -46,12 +46,12 @@ usertrap(void)
   //在从内核空间进入到用户空间之前，内核会设置好STVEC寄存器指向内核希望trap代码运行的位置。
   //即使trampoline page是在用户地址空间的user page table完成的映射，用户代码不能写它，
   //因为这些page对应的PTE并没有设置PTE_u标志位。这也是为什么trap机制是安全的。
-  w_stvec((uint64)kernelvec);//内核空间trap处理代码的位置
+  w_stvec((uint64)kernelvec);//将stvec设置为内核空间trap处理代码的位置，即kernelvec，用于调用kerneltrap()
 
   struct proc *p = myproc();
   
   // save user program counter.
-  p->trapframe->epc = r_sepc();
+  p->trapframe->epc = r_sepc(); // 在ecall时CPU将pc复制到sepc
   // 要保存用户程序计数器，它仍然保存在SEPC寄存器中，
   // 但是可能发生这种情况：当程序还在内核中执行时，
   // 我们可能切换到另一个进程，并进入到那个程序的用户空间，然后那个进程可能再调用一个系统调用进而导致SEPC寄存器的内容被覆盖。
