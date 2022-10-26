@@ -13,7 +13,7 @@ void
 simpletest()
 {
   uint64 phys_size = PHYSTOP - KERNBASE;
-  int sz = (phys_size / 3) * 2;
+  int sz = (phys_size / 3) * 2;//分配空间超过内存一半
 
   printf("simple: ");
   
