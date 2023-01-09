@@ -73,6 +73,8 @@ acquire(struct spinlock *lk)
   //   a5 = 1
   //   s1 = &lk->locked
   //   amoswap.w.aq a5, a5, (s1)
+  //将地址rs2上的值填入寄存器rd，再把rs1对应的值填入地址rs2，保证该指令
+  //具有原子性，执行该指令时，其它cpu不能访问地址rs2。
   while(__sync_lock_test_and_set(&lk->locked, 1) != 0) {
 #ifdef LAB_LOCK
     __sync_fetch_and_add(&(lk->nts), 1);

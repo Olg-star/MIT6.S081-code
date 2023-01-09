@@ -94,11 +94,12 @@ uartputc(int c)
   }
 
   while(1){
-    if(uart_tx_w == uart_tx_r + UART_TX_BUF_SIZE){
+    if(uart_tx_w == uart_tx_r + UART_TX_BUF_SIZE){//查看当前缓存是否还有空槽位
       // buffer is full.
       // wait for uartstart() to open up space in the buffer.
       sleep(&uart_tx_r, &uart_tx_lock);
-    } else {
+    } else {//如果有的话将数据放置于空槽位中；写指针加1；调用uartstart；最后释放锁。
+    //如果有的话将数据放置于空槽位中；写指针加1；调用uartstart；最后释放锁。
       uart_tx_buf[uart_tx_w % UART_TX_BUF_SIZE] = c;
       uart_tx_w += 1;
       uartstart();
@@ -149,12 +150,12 @@ uartstart()
       // it will interrupt when it's ready for a new byte.
       return;
     }
-    
+    //锁确保了我们可以在下一个字符写入到缓存之前，处理完缓存中的字符，这样缓存中的数据就不会被覆盖。
     int c = uart_tx_buf[uart_tx_r % UART_TX_BUF_SIZE];
     uart_tx_r += 1;
     
     // maybe uartputc() is waiting for space in the buffer.
-    wakeup(&uart_tx_r);
+    wakeup(&uart_tx_r);//锁确保了一个时间只有一个CPU上的进程可以写入UART的寄存器，THR。
     
     WriteReg(THR, c);
   }
